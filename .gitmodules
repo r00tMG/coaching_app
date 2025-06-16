@@ -1,0 +1,4 @@
+[submodule "coaching_academy"]
+    path = coaching_academy
+    url = https://github.com/r00tMG/coaching_app.git
+
