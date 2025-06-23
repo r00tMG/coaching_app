@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try 
     {
-      print("salut");
+      //print("salut");
       final response = await http.post(
         url,
         headers: {
@@ -207,7 +207,8 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(data));
-
+        final user_data = await prefs.getString('user_data');
+        print("user_data $user_data");
         final role = data['role'];
 
         if (role == 'coach') {

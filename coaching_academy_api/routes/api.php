@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\Api\PostController;
 use App\Http\Controllers\Admin\Api\CoachBookingController;
 use App\Http\Controllers\Admin\Api\ContactMessageController;
 use App\Http\Controllers\Admin\Api\MessageController;
+use App\Http\Controllers\Admin\Api\NotificationCustomController;
 
 
 /*
@@ -61,7 +62,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/conversations', [MessageController::class, 'getUserConversations']);
     Route::post('/messages/send', [MessageController::class, 'sendMessage']);
+    Route::get('/messages/{receiverId}', [MessageController::class, 'getMessagesWith']);
 
+    Route::get('/notifications', [NotificationCustomController::class, 'index']);
+    Route::post('/notifications/read/{id}', [NotificationCustomController::class, 'markAsRead']);
+    Route::delete('/notifications/{id}', [NotificationCustomController::class, 'destroy']);
 
 
 

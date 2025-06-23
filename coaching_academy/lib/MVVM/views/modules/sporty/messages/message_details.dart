@@ -71,7 +71,17 @@ class _MessageDetailsState extends State<MessageDetails> {
   Future<void> getCurrentUserId() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      currentUserId = prefs.getInt('user_id') ?? 0;
+      final userDataString = prefs.getString('user_data');
+
+      if (userDataString != null) {
+        final userData = jsonDecode(userDataString);
+        currentUserId = userData['id'] ?? 0;
+        print("user current $currentUserId");
+
+      } else {
+        currentUserId = 0;
+      }
+
     });
   }
 
@@ -200,7 +210,7 @@ class _MessageDetailsState extends State<MessageDetails> {
     final token = prefs.getString('auth_token');
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/api/messages/send?receiver_id=$receiverId"),
+      Uri.parse("http://localhost:8000/api/messages/$receiverId"),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',

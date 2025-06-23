@@ -82,8 +82,12 @@ class _MessagesHomeState extends State<MessagesHome> {
                           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                             return const Center(child: Text('Aucune conversation trouvée.'));
                           } else {
-                            return ListView(
-                              children: snapshot.data!.map((conv) {
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (context, index) {
+                                final conv = snapshot.data![index];
                                 return ChatWidget(
                                   onPress: () {
                                     PageNavigator(ctx: context).nextPage(
@@ -91,7 +95,6 @@ class _MessagesHomeState extends State<MessagesHome> {
                                         username: conv.username,
                                         userImage: conv.userImage,
                                         receiverId: conv.receiverId,
-
                                       ),
                                     );
                                   },
@@ -100,8 +103,9 @@ class _MessagesHomeState extends State<MessagesHome> {
                                   time: conv.lastTime,
                                   imagePath: conv.userImage,
                                 );
-                              }).toList(),
+                              },
                             );
+                            ;
                           }
                         },
                       ),
@@ -194,6 +198,7 @@ class _MessagesHomeState extends State<MessagesHome> {
 
     if (response.statusCode == 200) {
       List data = json.decode(response.body);
+      print("data response api conversation: $data");
       return data.map((item) => Conversation.fromJson(item)).toList();
     } else {
       throw Exception("Échec du chargement des conversations");

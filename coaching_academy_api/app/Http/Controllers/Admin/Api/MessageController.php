@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use Illuminate\Support\Facades\Auth;
+use App\Models\NotificationCustom;
+use Carbon\Carbon;
+
 
 class MessageController extends Controller
 {
@@ -35,11 +38,16 @@ class MessageController extends Controller
                     : asset('default/avatar.png'),
                 'last_message' => $last->content,
                 'last_time' => $last->created_at->format('h:i A'),
+                'last_time' => Carbon::parse($last->created_at)
+                    ->locale('fr_FR') 
+                    ->format('H:i')
+                    
             ];
         })->values();
 
         return response()->json($conversations);
     }
+
     public function sendMessage(Request $request)
     {
         $request->validate([
@@ -48,9 +56,21 @@ class MessageController extends Controller
         ]);
 
         $message = Message::create([
-            'sender_id' => auth()->id(), // Assure-toi que l'utilisateur est connecté
+            'sender_id' => auth()->id(), 
             'receiver_id' => $request->receiver_id,
             'content' => $request->content,
+        ]);
+        logger("sender :".$message.sender_id);
+
+        NotificationCustom::create([
+            'user_id' => $request->receiver_id,
+            'title' => 'Nouveau message',
+            'description' => 'Vous avez reçu un message de ' . auth()->user()->name,
+            'sender_id' => auth()->user()->id,
+            'sender_name' => auth()->user()->name,
+            'sender_image' => auth()->user()->profile_picture
+                ? asset('storage/' . auth()->user()->profile_picture)
+                : asset('default/avatar.png'),
         ]);
 
         return response()->json([
@@ -59,4 +79,32 @@ class MessageController extends Controller
             'data' => $message
         ]);
     }
+
+    public function getMessagesWith($receiverId)
+    {
+        $userId = auth()->id();
+
+        $messages = Message::where(function ($query) use ($userId, $receiverId) {
+            $query->where('sender_id', $userId)->where('receiver_id', $receiverId);
+        })->orWhere(function ($query) use ($userId, $receiverId) {
+            $query->where('sender_id', $receiverId)->where('receiver_id', $userId);
+        })
+        ->orderBy('created_at')
+        ->get()
+        ->map(function ($msg) {
+            return [
+                'id' => $msg->id,
+                'sender_id' => $msg->sender_id,
+                'receiver_id' => $msg->receiver_id,
+                'content' => $msg->content,
+                'created_at' => Carbon::parse($msg->created_at)
+                    ->locale('fr_FR') 
+                    ->isoFormat('dddd, DD MMMM YYYY [à] HH:mm'),
+            ];
+        });
+
+        return response()->json($messages);
+    }
+
+
 }

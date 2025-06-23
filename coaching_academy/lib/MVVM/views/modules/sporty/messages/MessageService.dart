@@ -10,7 +10,8 @@ class MessageService {
     required String content,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token'); // Token de connexion
+    final token = prefs.getString('auth_token'); // Token de connexion
+    print("token in message details pages $token");
 
     final response = await http.post(
       Uri.parse('http://localhost:8000/api/messages/send'), // Remplace par ton IP locale ou domaine
