@@ -62,9 +62,12 @@ class _MessageDetailsState extends State<MessageDetails> {
   void initState() {
     super.initState();
     getCurrentUserId(); // pour définir currentUserId
-    _timer = Timer.periodic(Duration(seconds: 5), (_) {
-      setState(() {}); // Pour relancer le FutureBuilder
+    fetchMessages(widget.receiverId).then((data) {
+      setState(() {
+        messages = data;
+      });
     });
+
   }
   int currentUserId = 0;
 
@@ -127,15 +130,18 @@ class _MessageDetailsState extends State<MessageDetails> {
                       if (content.isEmpty) return;
 
                       final success = await MessageService.sendMessage(
-                        receiverId: widget.receiverId, // Remplace par l’ID réel du destinataire
+                        receiverId: widget.receiverId,
                         content: content,
                       );
 
                       if (success) {
+                        messageController.clear(); // vide le champ
+
+                        final updatedMessages = await fetchMessages(widget.receiverId);
                         setState(() {
-                          // Tu peux aussi ajouter ce message dans la liste des messages affichés
-                          messageController.clear();
+                          messages = updatedMessages;
                         });
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text("Message envoyé")),
                         );
@@ -144,8 +150,8 @@ class _MessageDetailsState extends State<MessageDetails> {
                           SnackBar(content: Text("Échec de l'envoi")),
                         );
                       }
-                    }
-                    ,
+                    },
+
                     child: SvgPicture.asset(
                       AppImages.messageDetailsIcon,
                       fit: BoxFit.scaleDown,
@@ -171,37 +177,22 @@ class _MessageDetailsState extends State<MessageDetails> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: FutureBuilder<List<dynamic>>(
-          future: fetchMessages(widget.receiverId), // à implémenter
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Erreur: ${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("Aucun message"));
-            } else {
-              final messages = snapshot.data!;
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final msg = messages[index];
-                  final isMe = msg['sender_id'] == currentUserId; // à définir
-                  return ChatBubbleWidget(
-                    message: msg['content'],
-                    time: msg['created_at'],
-                    isMe: isMe,
-                  );
-                },
-              );
-            }
-          },
-        )
-        ,
+      body: messages.isEmpty
+          ? const Center(child: Text("Aucun message"))
+          : ListView.builder(
+        padding: const EdgeInsets.only(bottom: 80),
+        itemCount: messages.length,
+        itemBuilder: (context, index) {
+          final msg = messages[index];
+          final isMe = msg['sender_id'] == currentUserId;
+          return ChatBubbleWidget(
+            message: msg['content'],
+            time: msg['created_at'],
+            isMe: isMe,
+          );
+        },
       ),
+
     );
   }
 

@@ -12,7 +12,12 @@ use App\Http\Controllers\Admin\Api\CoachBookingController;
 use App\Http\Controllers\Admin\Api\ContactMessageController;
 use App\Http\Controllers\Admin\Api\MessageController;
 use App\Http\Controllers\Admin\Api\NotificationCustomController;
-
+use App\Http\Controllers\Admin\Api\StripePaymentController;
+use App\Http\Controllers\Admin\Api\BankDetailController;
+use App\Http\Controllers\Admin\Api\StripeController;
+use App\Http\Controllers\Admin\Api\SubscriptionController;
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/coach/services', [ServiceController::class, 'storeCoachServiceDetails']);
     Route::prefix('coach')->group(function () {
         Route::get('/services', [ServiceController::class, 'index']);
+        Route::get('/user/services', [ServiceController::class, 'indexByUser']);
         Route::get('/services/workingHours', [ServiceController::class, 'indexServiceWithWorkingHours']);
         Route::get('/services/{id}', [ServiceController::class, 'show']);
         Route::put('/services/{id}', [ServiceController::class, 'update']);
@@ -58,7 +64,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::get('/coach/bookings', [CoachBookingController::class, 'index']);
+    Route::post('/coach/bookings', [CoachBookingController::class, 'store']);
     Route::get('/coach/bookings/{id}', [CoachBookingController::class, 'show']);
+    Route::post('/user/bank-details', [BankDetailController::class, 'store']);
+
 
     Route::get('/conversations', [MessageController::class, 'getUserConversations']);
     Route::post('/messages/send', [MessageController::class, 'sendMessage']);
@@ -68,7 +77,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read/{id}', [NotificationCustomController::class, 'markAsRead']);
     Route::delete('/notifications/{id}', [NotificationCustomController::class, 'destroy']);
 
+    Route::post('/create-checkout-session', [StripePaymentController::class, 'createCheckoutSession']);
 
+    Route::get('/stripe/refresh/{id}', [StripeController::class, 'refresh']);
+    Route::get('/stripe/return', [StripeController::class, 'return']);
+
+    Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
+    Route::post('/subscribe/cancel', [SubscriptionController::class, 'cancel']);
+    Route::post('/subscribe/resume', [SubscriptionController::class, 'resume']);
 
 });
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -82,3 +98,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
         'address' => $request->user()->address
     ]);
 });
+

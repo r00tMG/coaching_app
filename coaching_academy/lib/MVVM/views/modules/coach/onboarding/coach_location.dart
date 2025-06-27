@@ -9,6 +9,7 @@ import 'package:coaching_academy/utils/widgets/text_field/custom_text_field.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +26,16 @@ class CoachLocation extends StatefulWidget {
 class _CoachLocationState extends State<CoachLocation> {
   TextEditingController locationController = TextEditingController();
   String? dynamicAddress;
+  GoogleMapController? _mapController;
+  LatLng? _currentLatLng;
+  Marker? _userMarker;
+
+  @override
+  void initState() {
+    super.initState();
+    _getUserLocation();
+    // Get location when screen opens
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,10 +81,30 @@ class _CoachLocationState extends State<CoachLocation> {
                 iconColor: Colors.black,
               ),
               10.verticalSpace,
-              Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: SvgPicture.asset(AppImages.coachLocation)),
-              Container(
+              _currentLatLng == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                height: 300,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _currentLatLng!,
+                      zoom: 14,
+                    ),
+                    myLocationEnabled: true,
+                    markers: _userMarker != null ? {_userMarker!} : {},
+                    onMapCreated: (GoogleMapController controller) {
+                      _mapController = controller;
+                    },
+                  ),
+                ),
+              )
+
+              ,
+              /*Container(
                 padding: const EdgeInsets.only(left: 20),
                 child: const CustomText(
                   text: "Address",
@@ -85,13 +116,13 @@ class _CoachLocationState extends State<CoachLocation> {
               Container(
                 padding: const EdgeInsets.only(left: 20),
                 child: CustomText(
-                  text: dynamicAddress ?? 'Adresse en cours...',
+                  text: dynamicAddress != null ? dynamicAddress! : 'Récupération de l’adresse...',
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   isPoppins: true,
                 ),
+              ),*/
 
-              ),
               100.verticalSpace,
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -115,6 +146,38 @@ class _CoachLocationState extends State<CoachLocation> {
     );
   }
 
+  Future<void> _getUserLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    _currentLatLng = LatLng(position.latitude, position.longitude);
+
+    if (mounted) {
+      setState(() {
+        _userMarker = Marker(
+          markerId: const MarkerId('user_location'),
+          position: _currentLatLng!,
+          infoWindow: const InfoWindow(title: 'Vous êtes ici'),
+        );
+      });
+    }
+
+
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    if (placemarks.isNotEmpty) {
+      Placemark placemark = placemarks.first;
+      setState(() {
+        dynamicAddress =
+        "${placemark.street}, ${placemark.locality}, ${placemark.country}";
+      });
+    }
+
+    // Centrer la caméra une fois le contrôleur prêt
+    _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLatLng!));
+  }
 
   Future<void> registerLocation({required BuildContext context}) async {
     final prefs = await SharedPreferences.getInstance();

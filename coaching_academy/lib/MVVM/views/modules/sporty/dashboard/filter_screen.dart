@@ -184,8 +184,9 @@ class _FilterScreenState extends State<FilterScreen> {
                 child: CustomButton(
                     buttonText: "Apply Filter",
                     onPressed: () {
+
                       PageNavigator(ctx: context)
-                          .nextPage(page: const FilterResultScreen());
+                          .nextPage(page: const FilterResultScreen(filteredServices: []));
                     }))
           ],
         ),

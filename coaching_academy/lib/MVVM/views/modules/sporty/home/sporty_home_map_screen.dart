@@ -32,12 +32,16 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
       Completer<GoogleMapController>();
   final TextEditingController searchController = TextEditingController();
 
-  static const CameraPosition _intialPosition = CameraPosition(
-    target: LatLng(37.7749, -122.4194),
-    zoom: 14,
-  );
+  CameraPosition? _userCameraPosition;
 
   List<Marker> myMarkers = [];
+  Map<String, ServiceCoachModel> serviceMap = {};
+  Map<int, List<ServiceCoachModel>> servicesByCoach = {};
+
+  ServiceCoachModel? selectedService;
+  bool showBottomSheet = false;
+  List<ServiceCoachModel>? selectedCoachServices;
+
 
   List<Marker> markerList = [
     const Marker(
@@ -57,6 +61,7 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
 
   @override
   void initState() {
+    fetchServicesFromAPI();
     WidgetsBinding.instance.addPostFrameCallback((t) {
       _focusNode.addListener(() {
         setState(() {
@@ -64,11 +69,10 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
         });
       });
     });
-    myMarkers.addAll(markerList);
+    //myMarkers.addAll(markerList);
     if (kIsWeb) {
       print('Running on Web');
     }
-    fetchServicesFromAPI();
 
     super.initState();
   }
@@ -109,7 +113,11 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
           children: [
             GoogleMap(
               // mapType: MapType.hybrid,
-              initialCameraPosition: _intialPosition,
+                initialCameraPosition: _userCameraPosition ??
+                const CameraPosition( // fallback si userPosition pas encore chargé
+                    target: LatLng(0, 0),
+                zoom: 1,
+              ),
               markers: Set<Marker>.of(myMarkers),
               onMapCreated: (GoogleMapController controller) {
                 _controller.complete(controller);
@@ -227,7 +235,12 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
         ),
       ),
 
-      bottomSheet: _isFocused ? const SizedBox() : const BottomSheetWidget(),
+      bottomSheet: _isFocused
+          ? const SizedBox()
+          : showBottomSheet && selectedCoachServices != null
+          ? BottomSheetWidget(services: selectedCoachServices!)
+          : const SizedBox(),
+
     );
   }
 
@@ -238,41 +251,166 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
     final url = Uri.parse('http://localhost:8000/api/coach/services');
 
     try {
-      final response = await http.get(url,
-          headers: {
-        'Accept':'application/json',
-        'Authorization':'Bearer $token'
+      final userPosition = await getUserLocation();
+      _userCameraPosition = CameraPosition(
+        target: LatLng(userPosition.latitude, userPosition.longitude),
+        zoom: 14,
+      );
+      final userMarker = Marker(
+        markerId: const MarkerId("user_position"),
+        position: LatLng(userPosition.latitude, userPosition.longitude),
+        infoWindow: const InfoWindow(title: "Moi"),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      );
+      myMarkers.add(userMarker);
+
+
+
+      final response = await http.get(url, headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
       });
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         final List<dynamic> servicesData = decoded['services'];
-
+        //print('service response api: $servicesData');
         List<ServiceCoachModel> services = servicesData
             .map((item) => ServiceCoachModel.fromJson(item))
             .toList();
 
         setState(() {
           myMarkers.clear();
+          serviceMap.clear();
 
+          /*for (var service in services) {
+            final latitude = service.user.latitude;
+            final longitude = service.user.longitude;
+            //print("$longitude et $latitude");
+            if (latitude != null && longitude != null) {
+              final distance = Geolocator.distanceBetween(
+                userPosition.latitude,
+                userPosition.longitude,
+                latitude,
+                longitude,
+              );
+              //print("distance $distance");
+
+              if (distance <= 5000) {
+                final markerId = MarkerId(service.id.toString()); // exemple: "12"
+
+                final marker = Marker(
+                  markerId: markerId,
+                  position: LatLng(latitude, longitude),
+                  infoWindow: InfoWindow(
+                    title: service.serviceName,
+                    snippet: service.user.name,
+                  ),
+                  onTap: () {
+                    setState(() {
+                      selectedService = service; // <== on garde ce coach sélectionné
+                      showBottomSheet = true;    // <== on affiche le bottom sheet
+                    });
+                  },
+                );
+
+
+                myMarkers.add(marker);
+                // Groupement par coach
+                final coachId = service.user.id;
+                if (!servicesByCoach.containsKey(coachId)) {
+                  servicesByCoach[coachId] = [];
+                }
+                servicesByCoach[coachId]!.add(service);
+                servicesByCoach.forEach((coachId, coachServices) {
+                  final coach = coachServices.first.user;
+                  final latitude = coach.latitude;
+                  final longitude = coach.longitude;
+
+                  if (latitude != null && longitude != null) {
+                    final distance = Geolocator.distanceBetween(
+                      userPosition.latitude,
+                      userPosition.longitude,
+                      latitude,
+                      longitude,
+                    );
+
+                    if (distance <= 5000) {
+                      final markerId = MarkerId(coachId.toString());
+
+                      final marker = Marker(
+                        markerId: markerId,
+                        position: LatLng(latitude, longitude),
+                        infoWindow: InfoWindow(
+                          title: coach.name,
+                          snippet: coachServices.map((s) => s.serviceName).join(", "),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            selectedCoachServices = coachServices;
+                            showBottomSheet = true;
+                          });
+                        },
+                      );
+
+                      myMarkers.add(marker);
+                    }
+                  }
+                });
+
+
+              }
+            }
+          }*/
           for (var service in services) {
-            final latitude = double.tryParse(service.user.latitude ?? '');
-            final longitude = double.tryParse(service.user.longitude ?? '');
+            final coachId = service.user.id;
+            if (!servicesByCoach.containsKey(coachId)) {
+              servicesByCoach[coachId] = [];
+            }
+            servicesByCoach[coachId]!.add(service);
+          }
+
+          servicesByCoach.forEach((coachId, coachServices) {
+            final coach = coachServices.first.user;
+            final latitude = coach.latitude;
+            final longitude = coach.longitude;
 
             if (latitude != null && longitude != null) {
-              final marker = Marker(
-                markerId: MarkerId(service.id.toString()),
-                position: LatLng(latitude, longitude),
-                infoWindow: InfoWindow(
-                  title: service.serviceName,
-                  snippet: service.user.name, // tu peux aussi afficher la catégorie
-                ),
+              final distance = Geolocator.distanceBetween(
+                userPosition.latitude,
+                userPosition.longitude,
+                latitude,
+                longitude,
               );
 
-              myMarkers.add(marker);
+              if (distance <= 5000) {
+                final markerId = MarkerId(coachId.toString());
+
+                final marker = Marker(
+                  markerId: markerId,
+                  position: LatLng(latitude, longitude),
+                  infoWindow: InfoWindow(
+                    title: coach.name,
+                    snippet: coachServices.map((s) => s.serviceName).join(", "),
+                  ),
+                  onTap: () {
+                    setState(() {
+                      selectedCoachServices = coachServices;
+                      showBottomSheet = true;
+                    });
+                  },
+                );
+
+                myMarkers.add(marker);
+              }
             }
-          }
+          });
+
         });
+
+        final GoogleMapController controller = await _controller.future;
+        controller.animateCamera(CameraUpdate.newCameraPosition(_userCameraPosition!));
+
       } else {
         print('Erreur API: ${response.statusCode}');
       }
@@ -280,6 +418,7 @@ class SportyHomeMapScreenState extends State<SportyHomeMapScreen> {
       print('Erreur: $e');
     }
   }
+
 
 
 }

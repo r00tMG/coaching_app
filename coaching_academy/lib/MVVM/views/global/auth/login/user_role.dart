@@ -1,6 +1,7 @@
 import 'package:coaching_academy/MVVM/views/global/auth/login/widget/user_role_widget.dart';
 import 'package:coaching_academy/MVVM/views/modules/coach/onboarding/service_details.dart';
 import 'package:coaching_academy/MVVM/views/modules/sporty/dashboard/sporty_dashboard.dart';
+import 'package:coaching_academy/MVVM/views/modules/sporty/subscription/subscription_step1.dart';
 import 'package:coaching_academy/utils/constants/images.dart';
 import 'package:coaching_academy/utils/widgets/button/custom_button.dart';
 import 'package:coaching_academy/utils/widgets/navigator/page_navigator.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 class UserRoleScreen extends StatefulWidget {
@@ -65,7 +67,8 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
                 if (selectedIndex == 0) {
                   PageNavigator(ctx: context).nextPage(page: const SportyDashboard());
                 } else {
-                  PageNavigator(ctx: context).nextPage(page: const ServiceDetailsScreen());
+                  //PageNavigator(ctx: context).nextPage(page: const ServiceDetailsScreen());
+                  PageNavigator(ctx: context).nextPage(page: const SubscriptionStep1());
                 }
               },
 
@@ -158,8 +161,6 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
     return prefs.getString('auth_token');
   }
 
-
-
   Future<void> setUserRole(String role, String token, BuildContext context) async {
     final url = Uri.parse('http://localhost:8000/api/set-role');
 
@@ -176,10 +177,24 @@ class _UserRoleScreenState extends State<UserRoleScreen> {
       );
 
       if (response.statusCode == 200) {
-        print('Role saved');
+        //print('Role saved');
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('role', jsonEncode(data['role']));
         showToast(context: context, message: "Role saved!");
+
+        /*final body = jsonDecode(response.body);
+        if (body['onboarding_url'] != null) {
+          final url = body['onboarding_url'];
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          } else {
+            showToast(context: context, message: "Impossible d'ouvrir le lien Stripe");
+          }
+        }*/
+
       } else {
-        print('failed to set Role');
+        //print('failed to set Role');
         showToast(context: context, message: "Failed to set role");
       }
     } catch (e) {

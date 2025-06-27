@@ -7,16 +7,53 @@ import 'package:coaching_academy/utils/widgets/spacing/spacing.dart';
 import 'package:coaching_academy/utils/widgets/text/custom_text.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../../models/ServiceCoachModel.dart';
+import '../../dashboard/filter_result.dart';
+
 class BottomSheetWidget extends StatefulWidget {
-  const BottomSheetWidget({super.key});
+  final List<ServiceCoachModel> services;
+
+  const BottomSheetWidget({required this.services});
+
+
+  //const BottomSheetWidget({super.key, required this.service});
 
   @override
   BottomSheetWidgetState createState() => BottomSheetWidgetState();
 }
 
 class BottomSheetWidgetState extends State<BottomSheetWidget> {
+  String selectedTrainingOption = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final options = _getTrainingOptions();
+    if (options.isNotEmpty) {
+      selectedTrainingOption = options.first;
+    }
+  }
+
+  List<String> _getTrainingOptions() {
+    final allOptions = widget.services
+        .expand((s) => s.workingHours)
+        .map((e) => e.trainingOption)
+        .toSet()
+        .toList();
+    return allOptions;
+  }
+
+
+  List<String> _getCategories() {
+    return widget.services.map((s) => s.category).toSet().toList();
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    final categories = _getCategories();
+    final trainingOptions = _getTrainingOptions();
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xff232323),
@@ -25,48 +62,46 @@ class BottomSheetWidgetState extends State<BottomSheetWidget> {
           topRight: Radius.circular(30),
         ),
       ),
-      height: 280, // Set the height for the bottom sheet
+      height: 330,
       child: Column(
         children: [
           10.verticalSpace,
-          ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+          Center(
             child: Container(
-              clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(100),
-              ),
               width: 50,
-              child: Divider(
+              height: 5,
+              decoration: BoxDecoration(
                 color: AppColors.foregroundGrey,
-                thickness: 5,
-                height: 10,
+                borderRadius: BorderRadius.circular(30),
               ),
             ),
           ),
           10.verticalSpace,
-          Container(
-            padding: const EdgeInsets.only(left: 10),
+          // COACH HEADER
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
-                Image.asset(AppImages.avatar),
+                Image.network(
+                  widget.services.first.user.profilePicture ??
+                      'https://via.placeholder.com/40',
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(Icons.account_circle, size: 40),
+                ),
                 10.horizontalSpace,
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CustomText(
-                      text: "Bushra Bibi",
-                    ),
+                    CustomText(text: widget.services.first.user.name),
                     Row(
                       children: [
-                        Icon(
-                          Icons.circle,
-                          color: AppColors.primaryGreen,
-                          size: 8,
-                        ),
-                        2.horizontalSpace,
-                        const CustomText(
-                          text: "Disponible",
-                        ),
+                        Icon(Icons.circle,
+                            color: AppColors.primaryGreen, size: 8),
+                        5.horizontalSpace,
+                        const CustomText(text: "Disponible"),
                       ],
                     ),
                   ],
@@ -74,86 +109,89 @@ class BottomSheetWidgetState extends State<BottomSheetWidget> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Divider(
-              color: AppColors.foregroundGrey,
-            ),
-          ),
+          10.verticalSpace,
+          Divider(color: AppColors.foregroundGrey),
+          10.verticalSpace,
+          // CATEGORIES
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  HomeOption(
+              children: categories.map((category) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: HomeOption(
                     iconPath: AppImages.fitnessIcon,
+                    title: category,
                     onPress: () {
-                      PageNavigator(ctx: context).nextPage(
-                          page: const SportyDashboard2(
-                        indexx: 0,
-                      ));
+                      // Tu peux ajouter une logique de filtrage par catégorie ici
                     },
-                    title: "Fitness",
                   ),
-                  5.horizontalSpace,
-                  HomeOption(
-                    iconPath: AppImages.circuitTrainingIcon,
-                    onPress: () {
-                      PageNavigator(ctx: context).nextPage(
-                          page: const SportyDashboard2(
-                        indexx: 0,
-                      ));
-                    },
-                    title: "Circuit Training",
-                  ),
-                  5.horizontalSpace,
-                  HomeOption(
-                    iconPath: AppImages.bodyBuildingIcon,
-                    onPress: () {
-                      PageNavigator(ctx: context).nextPage(
-                          page: const SportyDashboard2(
-                        indexx: 0,
-                      ));
-                    },
-                    title: "Body Building",
-                  ),
-                ]),
+                );
+              }).toList(),
+            ),
           ),
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Divider(
               color: AppColors.foregroundGrey,
             ),
           ),
+
+          // TRAINING OPTION SELECTOR
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              HomeOption2(
-                onPress: () {
-                  PageNavigator(ctx: context).nextPage(
-                      page: const SportyDashboard2(
-                    indexx: 0,
-                  ));
-                },
+              children: trainingOptions.map((option) {
+                return HomeOption2(
+                  label: option,
+                  /*onPress: () {
+                    setState(() {
+                      selectedTrainingOption = option;
+                    });
+                  },*/
+                  onPress: () {
+                    final filtered = widget.services.where((s) {
+                      return s.workingHours.any((wh) => wh.trainingOption == option);
+                    }).toList();
+
+                    PageNavigator(ctx: context).nextPage(
+                      page: FilterResultScreen(filteredServices: filtered),
+                    );
+                  },
+
+                );
+              }).toList(),
+            ),
+
+          /*10.verticalSpace,
+          Divider(color: AppColors.foregroundGrey),
+
+          // SERVICES LIST (affichés quel que soit l’option)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: widget.service.coachServices.map((service) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: HomeOption(
+                        iconPath: AppImages.fitnessIcon,
+                        title: service.name,
+                        onPress: () {
+                          PageNavigator(ctx: context).nextPage(
+                            page: const SportyDashboard2(indexx: 0),
+                          );
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
-              HomeOption2(
-                onPress: () {
-                  PageNavigator(ctx: context).nextPage(
-                      page: const SportyDashboard2(
-                    indexx: 0,
-                  ));
-                },
-              ),
-              HomeOption2(
-                onPress: () {
-                  PageNavigator(ctx: context).nextPage(
-                      page: const SportyDashboard2(
-                    indexx: 0,
-                  ));
-                },
-              ),
-            ],
-          ),
+            ),
+          ),*/
         ],
       ),
     );

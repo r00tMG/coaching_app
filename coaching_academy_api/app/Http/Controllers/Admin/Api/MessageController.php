@@ -60,7 +60,7 @@ class MessageController extends Controller
             'receiver_id' => $request->receiver_id,
             'content' => $request->content,
         ]);
-        logger("sender :".$message.sender_id);
+        //logger("sender :".$message.sender_id);
 
         NotificationCustom::create([
             'user_id' => $request->receiver_id,

@@ -12,7 +12,6 @@ class ServiceController extends Controller
 {
     public function indexServiceWithWorkingHours()
     {
-        logger('fgh,;');
         $coachId = Auth::id();
         $services = Service::where('user_id', $coachId)->with(['workingHours', 'workspaceMedias', 'user', 'coachServices'])->get();
 
@@ -25,7 +24,19 @@ class ServiceController extends Controller
     {
         $coachId = Auth::id();
         $services = Service::with(['workingHours', 'workspaceMedias', 'user', 'coachServices'])->get();
+        //$services = Service::where('user_id', $coachId)->with(['workingHours', 'workspaceMedias', 'user', 'coachServices'])->get();
 
+
+        return response()->json([
+            'services' => $services
+        ]);
+    }
+
+    public function indexByUser()
+    {
+        $coachId = Auth::id();
+        //$services = Service::with(['workingHours', 'workspaceMedias', 'user', 'coachServices'])->get();
+        $services = Service::where('user_id', $coachId)->with(['workingHours', 'workspaceMedias', 'user', 'coachServices'])->get();
         return response()->json([
             'services' => $services
         ]);
@@ -89,6 +100,7 @@ class ServiceController extends Controller
 
     public function store(Request $request)
     {
+        
         $validated = $request->validate([
             'service_name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
@@ -110,7 +122,6 @@ class ServiceController extends Controller
 
     public function storeCoachServiceDetails(Request $request)
     {
-        logger('test');
         $request->validate([
             'name' => 'required|string|max:255',
             'duration' => 'required|string|max:50',
@@ -118,6 +129,40 @@ class ServiceController extends Controller
         ]);
         $user = $request->user();
         $service = $user->services()->latest()->first();
+        if (!$service) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Aucun service trouvé.'
+            ], 404);
+        }
+        // Récupération de l'heure de début et de fin du service
+        $workingHour = $service->workingHours()->first();
+
+        if (!$workingHour) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Aucun horaire défini pour ce service.'
+            ], 404);
+        }
+
+        $start = \Carbon\Carbon::createFromFormat('H:i:s', $workingHour->start_hour);
+        $end = \Carbon\Carbon::createFromFormat('H:i:s', $workingHour->end_hour);
+        $durationService = $end->diffInMinutes($start);
+        logger('duration service: '.$durationService);
+
+        $service->load('coachServices'); 
+        $totalUsedMinutes = $service->coachServices->sum('duration');
+        logger('duration coach service: '.$totalUsedMinutes);
+        
+        $newDuration = intval($request->input('duration')); 
+        logger('new duration service: '. $newDuration);
+
+        if ($totalUsedMinutes + $newDuration > $durationService) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Durée totale des services dépassée. Veuillez ajuster vos horaires ou services.'
+            ], 400);
+        }
         $service = CoachService::create([
             'service_id' => $service->id,
             'name' => $request->name,

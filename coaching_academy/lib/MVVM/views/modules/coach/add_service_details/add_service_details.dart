@@ -69,7 +69,7 @@ class _AddServiceDetailsScreenState extends State<AddServiceDetailsScreen> {
                 10.verticalSpace,
                 CustomTextField(
                   controller: serviceNameController,
-                  hintText: "Service Name",
+                  hintText: "Activity Name",
                   textFontSize: 14,
                   hintTextColor: Colors.black,
                   fontWeight: FontWeight.w400,
@@ -125,7 +125,7 @@ class _AddServiceDetailsScreenState extends State<AddServiceDetailsScreen> {
 
 
 
-  Future<void> submitServiceDetails() async {
+  /*Future<void> submitServiceDetails() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     print('token dans service details $token');
@@ -170,7 +170,55 @@ class _AddServiceDetailsScreenState extends State<AddServiceDetailsScreen> {
     } catch (e) {
       GlobalHelper.showErrorSnackbar(context, "Erreur : $e");
     }
+  }*/
+
+  Future<void> submitServiceDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    //print('token dans service details $token');
+
+    final name = serviceNameController.text.trim();
+    final duration = durationController.text.trim();
+    final price = priceController.text.trim();
+
+    if (name.isEmpty || duration.isEmpty || price.isEmpty) {
+      GlobalHelper.showErrorSnackbar(context, "Tous les champs sont requis.");
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://0.0.0.0:8000/api/coach/services'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          "name": name,
+          "duration": duration,
+          "price": price,
+        }),
+      );
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      print("Réponse API: $data");
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (data['status'] == true) {
+          GlobalHelper.showSuccessSnackbar(context, "Service ajouté !");
+          PageNavigator(ctx: context).nextPage(page: const SelectServiceScreen());
+        } else {
+          GlobalHelper.showErrorSnackbar(context, data['message'] ?? "Erreur inconnue");
+        }
+      } else {
+        // Gérer cas où l'API renvoie une erreur métier (ex: durée dépassée)
+        GlobalHelper.showErrorSnackbar(context, data['message'] ?? "Erreur serveur");
+      }
+    } catch (e) {
+      GlobalHelper.showErrorSnackbar(context, "Erreur : $e");
+    }
   }
+
 
 
 

@@ -158,12 +158,12 @@ class _SportyProfileScreenState extends State<SportyProfileScreen> {
                 PageNavigator(ctx: context).nextPage(
                     page: BankDetailsMainScreen(
                   onAddPress: () {
-                    PageNavigator(ctx: context).nextPage(page: BankDetailsPage(
-                      onSavePress: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                    ));
+                    /*PageNavigator(ctx: context).nextPage(page: BankDetailsPage(
+                        coachServices: widget.coachServices, // ou la variable CoachServiceModel actuelle
+                        onSavePress: () {
+                          // ...
+                        }
+                    ));*/
                   },
                 ));
               },

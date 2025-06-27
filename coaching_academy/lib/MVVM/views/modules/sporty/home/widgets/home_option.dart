@@ -42,9 +42,12 @@ class HomeOption extends StatelessWidget {
 
 class HomeOption2 extends StatelessWidget {
   final VoidCallback onPress;
+  final String label;
+
   const HomeOption2({
     super.key,
     required this.onPress,
+    required this.label,
   });
 
   @override
@@ -57,20 +60,20 @@ class HomeOption2 extends StatelessWidget {
           color: AppColors.backgroundGrey,
         ),
         padding: const EdgeInsets.all(10),
-        width: MediaQuery.of(context).size.width * 0.3,
+        width: MediaQuery.of(context).size.width * 0.28,
         child: Row(
           children: [
             SvgPicture.asset(AppImages.fitnessIcon),
             9.horizontalSpace,
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CustomText(
-                  text: "Outside",
+                  text: label,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
-                CustomText(
+                const CustomText(
                   text: "See Details",
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
@@ -83,3 +86,4 @@ class HomeOption2 extends StatelessWidget {
     );
   }
 }
+

@@ -7,6 +7,7 @@ import 'package:coaching_academy/utils/widgets/text/custom_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../models/DiaryEvent.dart';
@@ -159,16 +160,19 @@ class DiaryScreenState extends State<DiaryScreen> {
                 itemCount: _events.length,
                 itemBuilder: (context, index) {
                   final event = _events[index];
-                  return _buildEventContainer(
-                    onPress: () {
-                      PageNavigator(ctx: context).nextPage(
-                          page: const CoachBookingDetailsScreen());
-                    },
-                    event.date,
-                    event.time,
-                    event.title,
-                    event.description,
-                    event.image,
+                  return Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: _buildEventContainer(
+                      onPress: () {
+                        PageNavigator(ctx: context).nextPage(
+                            page: const CoachBookingDetailsScreen());
+                      },
+                      DateFormat('EEEE, dd MMM, yyyy').format(event.date),
+                      event.time,
+                      event.title,
+                      event.description,
+                      event.image,
+                    ),
                   );
                 },
               ),

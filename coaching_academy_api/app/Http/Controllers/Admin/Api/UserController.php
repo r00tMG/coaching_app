@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
+use Stripe\Stripe;
+use Stripe\StripeClient;
 
 
 class UserController extends Controller
@@ -89,21 +93,82 @@ class UserController extends Controller
         ]);
     }
 
+
     public function setRole(Request $request)
     {
+        logger()->info('Entrée dans setRole', ['user_id' => $request->user()->id, 'role' => $request->role]);
+    
         $request->validate([
             'role' => 'required|in:coach,sporty',
         ]);
-
+    
         $user = $request->user();
         $user->role = $request->role;
-        $user->save();
-
+    
+        /* try {
+            if ($request->role === 'coach') {
+                logger()->info('Rôle coach détecté, initialisation Stripe');
+    
+                $stripe = new StripeClient(env("STRIPE_SECRET"));
+                logger()->info('Client Stripe initialisé');
+    
+                // Vérifie si le coach a déjà un express_id
+                if (!$user->express_id) {
+                    logger()->info('Aucun express_id trouvé, création du compte Stripe');
+    
+                    $account = $stripe->accounts->create([
+                        'country' => 'US',
+                        'type' => 'express',
+                    ]);
+    
+                    logger()->info('Compte Stripe Express créé', ['account_id' => $account->id]);
+    
+                    $user->express_id = $account->id;
+                } else {
+                    logger()->info('express_id déjà existant', ['express_id' => $user->express_id]);
+                }
+    
+                $user->save();
+                logger()->info('Utilisateur mis à jour avec express_id', ['user_id' => $user->id]);
+    
+                $accountLink = $stripe->accountLinks->create([
+                    'account' => $user->express_id,
+                    'refresh_url' => url('/stripe/refresh/' . $user->express_id),
+                    'return_url' => url('/stripe/return'),
+                    'type' => 'account_onboarding',
+                ]);
+    
+                logger()->info('Lien d’onboarding Stripe créé', ['url' => $accountLink->url]);
+    
+                return response()->json([
+                    'message' => 'Coach account and Stripe onboarding created successfully.',
+                    'role' => $user->role,
+                    'onboarding_url' => $accountLink->url,
+                ]);
+            }
+    
+            $user->save();
+            logger()->info('Rôle sportif défini et utilisateur mis à jour', ['user_id' => $user->id]);
+    
+        } catch (\Exception $e) {
+            logger()->error('Erreur dans setRole', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+            ]);
+    
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        } */
+    
         return response()->json([
             'message' => 'Role updated successfully',
             'role' => $user->role,
         ]);
     }
+    
+
 
     public function login(Request $request)
     {

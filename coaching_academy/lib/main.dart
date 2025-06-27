@@ -1,7 +1,16 @@
 import 'package:coaching_academy/MVVM/views/global/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:stripe_payment/stripe_payment.dart';
 
 void main() {
+  StripePayment.setOptions(
+    StripeOptions(
+      publishableKey: "...", // clé publique Stripe
+      merchantId: "Test",
+      androidPayMode: 'test',
+    ),
+  );
+
   runApp(const MyApp());
 }
 

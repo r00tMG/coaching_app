@@ -8,8 +8,13 @@ import 'package:coaching_academy/utils/widgets/text/custom_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../../models/ServiceCoachModel.dart';
+
 class SportyServiceProfileScreen extends StatelessWidget {
-  const SportyServiceProfileScreen({super.key});
+  final ServiceCoachModel service;
+
+  const SportyServiceProfileScreen({required this.service, super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -35,12 +40,17 @@ class SportyServiceProfileScreen extends StatelessWidget {
                           //   fit: BoxFit.cover,
                           // ),
                           ),
-                      child: Image.asset(
-                        AppImages.coverPhoto,
+                      child:
+                        Image.network(
+                      //service.user.profilePicture ??
+                          'https://via.placeholder.com/150',
+                        height: 160,
+                        width: 160,
                         fit: BoxFit.cover,
-                        width: MediaQuery.of(context).size.width,
-                      ),
-                    ),
+                      )
+
+
+      ),
                   ),
 
                   // Cover Photo
@@ -86,7 +96,13 @@ class SportyServiceProfileScreen extends StatelessWidget {
                       height: 160,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(AppImages.profilePicture),
+                        child:Image.network(
+                          //service.user.profilePicture ??
+                              'https://via.placeholder.com/600x200',
+                          fit: BoxFit.cover,
+                          width: MediaQuery.of(context).size.width,
+                          height: 200,
+                        ),
                       ),
                     ),
                   ),
@@ -108,20 +124,21 @@ class SportyServiceProfileScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const Positioned(
+                  Positioned(
                     top: 255,
                     left: 160,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CustomText(
-                          text: 'Cameron Jones',
+                          text: service.user.name,
                           isPoppins: true,
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
-                        Row(
+
+                        const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.star, color: Colors.yellow, size: 16),
@@ -132,7 +149,7 @@ class SportyServiceProfileScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        CustomText(
+                        const CustomText(
                           text: 'Yoga Trainer',
                           color: Colors.white70,
                           isPoppins: true,
@@ -142,10 +159,10 @@ class SportyServiceProfileScreen extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.location_on,
+                            const Icon(Icons.location_on,
                                 color: Colors.white, size: 14),
                             CustomText(
-                              text: '111 Street main Buleva...',
+                              text: service.user.location ?? '111 Street main Buleva...',
                               isPoppins: true,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -213,10 +230,9 @@ class SportyServiceProfileScreen extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(16.0),
                 margin: const EdgeInsets.symmetric(horizontal: 10),
-                child: const CustomText(
+                child: CustomText(
                   isPoppins: true,
-                  text:
-                      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ac feugiat quis faucibus dui diam. Vestibulum, elementum, pretium in suspendisse interdum aenean id sapien, amet. Quis varius lorem felis tortor cursus tempor.',
+                  text: service.description ?? "No description provided",
                   color: Colors.black,
                 ),
               ),
@@ -245,13 +261,13 @@ class SportyServiceProfileScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  children: [
-                    buildServiceTile('Yoga Service', '45 Min', '\$30'),
-                    buildServiceTile('Running Tips', '60 Min', '\$40'),
-                    buildServiceTile('Circuit Training', '70 Min', '\$50'),
-                    buildServiceTile('Fitness Training', '90 Min', '\$60'),
-                    // Add more services as needed
-                  ],
+                  children: service.coachServices.map((s) {
+                    return buildServiceTile(
+                      s.name,
+                      "${s.duration} Min",
+                      "${s.price} \$",
+                    );
+                  }).toList(),
                 ),
               ),
 
@@ -278,9 +294,11 @@ class SportyServiceProfileScreen extends StatelessWidget {
                             Size(MediaQuery.of(context).size.width * 0.4, 50),
                         backgroundColor: Colors.white),
                     onPressed: () {
-                      PageNavigator(ctx: context)
-                          .nextPage(page: const NewBookingScreen());
+                      PageNavigator(ctx: context).nextPage(
+                        page: NewBookingScreen(coachServices: service.coachServices),
+                      );
                     },
+
                     child: const CustomText(
                       text: "Book Now",
                       color: Colors.black,

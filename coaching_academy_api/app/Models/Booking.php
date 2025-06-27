@@ -9,21 +9,21 @@ class Booking extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'coach_id',
-        'user_id',
-        'service_name',
-        'price',
-        'status',
-        'booking_time',
+        'sporty_id', 'coach_id', 'coach_service_id', 'date', 'time', 'gender', 'training_place', 'status',
     ];
 
-    public function user()
+    public function service()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(CoachService::class, 'coach_service_id');
     }
 
     public function coach()
     {
         return $this->belongsTo(User::class, 'coach_id');
+    }
+
+    public function sporty()
+    {
+        return $this->belongsTo(User::class, 'sporty_id');
     }
 }

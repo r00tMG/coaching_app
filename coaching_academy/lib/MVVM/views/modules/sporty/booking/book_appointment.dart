@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:coaching_academy/MVVM/views/global/auth/helper/global_helper.dart';
 import 'package:coaching_academy/MVVM/views/modules/sporty/bank_details/bank_details.dart';
 import 'package:coaching_academy/MVVM/views/modules/sporty/bank_details/bank_details_main_screen.dart';
@@ -6,10 +8,16 @@ import 'package:coaching_academy/utils/widgets/navigator/page_navigator.dart';
 import 'package:coaching_academy/utils/widgets/spacing/spacing.dart';
 import 'package:coaching_academy/utils/widgets/text/custom_text.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../../models/CoachServiceModel.dart';
+
 class BookAppointment extends StatefulWidget {
-  const BookAppointment({super.key});
+  final CoachServiceModel coachServices;
+
+  const BookAppointment({super.key, required this.coachServices});
 
   @override
   _BookAppointmentState createState() => _BookAppointmentState();
@@ -219,32 +227,57 @@ class _BookAppointmentState extends State<BookAppointment> {
               // Continue Button
               Center(
                 child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        minimumSize:
-                            Size(MediaQuery.of(context).size.width * 0.5, 50),
-                        backgroundColor: Colors.white),
-                    onPressed: () {
-                      PageNavigator(ctx: context).nextPage(
-                          page: BankDetailsPage(
-                        onSavePress: () {
-                          PageNavigator(ctx: context).nextPage(
-                              page: BankDetailsMainScreen(
-                            onAddPress: () {
-                              PageNavigator(ctx: context).nextPage(
-                                  page: BankDetailsPage(
-                                onSavePress: () {
-                                  Navigator.pop(context);
-                                },
-                              ));
-                            },
-                          ));
-                        },
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: Size(MediaQuery.of(context).size.width * 0.5, 50),
+                      backgroundColor: Colors.white),
+                  onPressed: () async {
+                    if (_selectedDay == null || selectedTimeIndex == -1) {
+                      // Optionnel : montrer un message d'erreur
+                      return;
+                    }
+
+                    final times = [
+                      '07:00', '08:00', '09:00', '11:00', '12:00', '01:00', '02:00', '04:00'
+                    ];
+
+                    final bookingData = {
+                      "coach_id": widget.coachServices.id,
+                      "coach_service_id": widget.coachServices.id,
+                      "date": _selectedDay!.toIso8601String().split('T')[0],
+                      "time": times[selectedTimeIndex],
+                      "gender": selectedGender,
+                      "training_place": selectedTrainingPlace,
+                    };
+
+                    final prefs = await SharedPreferences.getInstance();
+                    final token = prefs.getString('auth_token');
+                    print("token: $token");
+                    final response = await http.post(
+                      Uri.parse('http://localhost:8000/api/coach/bookings'),
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer $token'
+                      },
+                      body: jsonEncode(bookingData),
+                    );
+                    print("resonse body: ${response.body}");
+                    if (response.statusCode == 201) {
+                      // Succès
+                      PageNavigator(ctx: context).nextPage(page: BankDetailsPage(
+                          onSavePress: () {},
+                          coachServices: widget.coachServices
                       ));
-                    },
-                    child: const CustomText(
-                      text: "Continue",
-                      color: Colors.black,
-                    )),
+                    } else {
+                      // Gérer les erreurs
+                      debugPrint('Erreur: ${response.body}');
+                    }
+                  },
+                  child: const CustomText(
+                    text: "Continue",
+                    color: Colors.black,
+                  ),
+                ),
+
               ),
               20.verticalSpace,
             ],

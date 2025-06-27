@@ -166,7 +166,7 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://0.0.0.0:8000/api/coach/services'),
+        Uri.parse('http://0.0.0.0:8000/api/coach/user/services'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -175,8 +175,10 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
+
         setState(() {
           services = data['services']; // ou 'data' selon ta réponse backend
+          print('service dans select service $services');
         });
       } else {
         GlobalHelper.showErrorSnackbar(context, "Erreur de chargement des services.");
@@ -188,6 +190,11 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
 
 
   Container selectServiceButton(dynamic service) {
+    final coachServiceList = service['coach_services'];
+    final firstCoachService = coachServiceList != null && coachServiceList.isNotEmpty
+        ? coachServiceList[0]
+        : null;
+
     return Container(
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.only(bottom: 10),
@@ -202,14 +209,18 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CustomText(
-                text: service['name'] ?? 'Nom inconnu',
+                text: firstCoachService != null
+                    ? firstCoachService['name'] ?? 'Nom inconnu'
+                    : 'Nom inconnu',
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 isPoppins: true,
                 color: Colors.black,
               ),
               CustomText(
-                text: "${service['duration']} Min",
+                text: firstCoachService != null
+                    ? "${firstCoachService['duration']} Min"
+                    : 'Durée inconnue',
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
                 isPoppins: true,
@@ -226,7 +237,6 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
                 ),
               );
 
-              // Rafraîchir les données si un service a été modifié
               if (result == true) {
                 fetchServices();
               }
@@ -245,6 +255,7 @@ class _SelectServiceScreenState extends State<SelectServiceScreen> {
       ),
     );
   }
+
 
 
 
